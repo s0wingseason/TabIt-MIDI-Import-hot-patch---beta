@@ -1,132 +1,56 @@
+TabIt MIDI Import hot patch - beta
+==================================
 
-# tbt-parser
-A C++ parser and MIDI converter for .tbt TabIt files
+What this patch changes
+-----------------------
+- Replaces the obsolete Tools > Check for Updates command with:
+    Tools > Import MIDI Tool.
+- The menu command launches the sibling native helper TabItMidiImport.exe.
+- No registration, activation, license, or authentication code is modified.
 
-The .tbt TabIt file format is described here:
+Install / run
+-------------
+1. Keep these two files in the SAME folder:
+     TabIt_MIDI_Import_Patched.exe
+     TabItMidiImport.exe
+2. Launch TabIt_MIDI_Import_Patched.exe.
+3. Choose Tools > Import MIDI Tool.
+4. Select a .mid or .midi file.
+5. Choose where to save the generated .tbt file.
+6. The helper asks Windows to open that .tbt file in the registered TabIt application.
+   If file association does not auto-open it, use File > Open in TabIt.
 
-* [The .tbt TabIt file format](https://github.com/bostick/tabit-file-format)
+Current beta import behavior
+----------------------------
+- Standard MIDI File (PPQ timing) input.
+- One pitched MIDI channel per imported file. Drum channel 10 is ignored.
+- Auto-detects standard 4-string bass vs standard 6-string guitar.
+- Notes are quantized to TabIt's native 1/16-note space grid.
+- Maps simultaneous notes to distinct playable strings at frets 0-24.
+- Reads the MIDI tempo and initial time signature.
+- Does not yet support time-signature changes within the song.
+- Note attacks are imported; MIDI note-off durations are not represented separately.
 
+Immediate Muse use case
+-----------------------
+The previously generated bass-only MIDI was validated through the same converter core:
+434 note attacks were recovered 1:1 in the emitted TabIt note grid.
 
-All known versions of TabIt are handled.
+Files / hashes
+--------------
+Original supplied TabIt.exe SHA-256:
+  8e7af9014ff94c7fa2e17345e8dc69439f381c00839de469ae33ad3523dfeda9
 
+Patched TabIt SHA-256:
+  145ef45f6f25996da5262fcf50c2c9e28e5cd1693d8256493d5e4960d8fed81e
 
-## How to build
+Native helper SHA-256:
+  423733275c72e1c033f255b03063578d122eabaffe4008df7725e239951645f3
 
-tbt-parser depends on zlib and uses CMake for building.
-
-tbt-parser requires a C++20 compiler because of features such as `__VA_OPT__`.
-
-```
-cd tbt-parser
-mkdir build
-cd build
-cmake ..
-cmake --build .
-```
-
-If building tests with Xcode, must also do:
-```
--DCMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE=PRE_TEST
-```
-
-https://gitlab.kitware.com/cmake/cmake/-/issues/25730
-
-
-## How to use
-
-Print out tablature from a .tbt TabIt file:
-```
-% ./tbt-printer --input-file black.tbt                                                                     
-tbt printer v1.4.0
-Copyright (C) 2026 by Brenton Bostick
-input file: black.tbt
-output file: out.txt
-parsing...
-printing...
-finished!
-% 
-```
-
-Generate a MIDI file from a .tbt TabIt file:
-```
-% ./tbt-converter --input-file black.tbt 
-tbt converter v1.4.0
-Copyright (C) 2026 by Brenton Bostick
-input file: black.tbt
-output file: out.mid
-emit control change events: 1
-emit program change events: 1
-emit pitch bend events: 1
-exporting...
-finished!
-% 
-```
-
-Generate a MIDI file from a .tbt TabIt file, and do not emit any ControlChange events, ProgramChange events, or PitchBend events:
-```
-% ./tbt-converter --input-file black.tbt --emit-controlchange-events 0 --emit-programchange-events 0 --emit-pitchbend-events 0
-tbt converter v1.4.0
-Copyright (C) 2026 by Brenton Bostick
-input file: black.tbt
-output file: out.mid
-emit control change events: 0
-emit program change events: 0
-emit pitch bend events: 0
-exporting...
-finished!
-% 
-```
-
-Print out information about a MIDI file:
-```
-% ./midi-info --input-file black.mid 
-midi info v1.4.0
-Copyright (C) 2026 by Brenton Bostick
-input file: black.mid
-parsing...
-tracks:
-Track Count: 6
-Track Name: TabIt MIDI - Track 1
-Track Name: TabIt MIDI - Track 2
-Track Name: TabIt MIDI - Track 3
-Track Name: TabIt MIDI - Track 4
-Track Name: TabIt MIDI - Track 5
-times:                  h:mm:sssss
-   last Note On (wall): 0:04:17.18
-  last Note Off (wall): 0:04:17.51
-   End Of Track (wall): 0:04:17.51
- last Note On (micros): 257176681.50000000000000000
-last Note Off (micros): 257513760.00000000000000000
- End Of Track (micros): 257513760.00000000000000000
-  last Note On (ticks): 73632
- last Note Off (ticks): 73728
-  End Of Track (ticks): 73728
-finished!
-% 
-```
-
-Print out information about a .tbt TabIt file:
-```
-% ./tbt-info --input-file black.tbt
-tbt info v1.4.0
-Copyright (C) 2026 by Brenton Bostick
-input file: black.tbt
-tbt file version: 2.0 (0x72)
-title: Back In Black
-artist: AC/DC
-album: Back In Black
-transcribed by: Wraith (wraith_anleu@yahoo.com)
-
-let me know if I can fix anything
-
-edit  10-13-05
--more small things changes
-edit  2-4-05 
--fixed some small things
-% 
-```
-
-
-
-
-
+Implementation notes
+--------------------
+The patched 32-bit TabIt executable redirects the old TCheckForUpdatesClick handler to a
+small code stub placed in unused .text raw padding. That stub resolves the helper path next
+to the running TabIt executable and launches it using TabIt's existing ShellExecuteA import.
+The helper is a self-contained 64-bit Windows executable and requires no Python or other
+third-party runtime.
